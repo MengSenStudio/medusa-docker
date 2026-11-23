@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { createSign, generateKeyPairSync } from "node:crypto"
 
 import {
