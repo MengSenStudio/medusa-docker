@@ -29,7 +29,16 @@
 
 fork 新增的文件（部署配置、支付宝 provider、通知路由、扫码状态接口、storefront 回跳路由）都独立存放，不改上游既有逻辑。确需在上游文件里追加的少量代码都带 `// fork-addition:` 注释：`medusa-config.ts`（Cookie、文件模块 `backend_url`、支付宝 provider 注册）、`initial-data-seed.ts`（新库自动启用支付宝），以及 storefront 的支付选项/按钮/常量三处。支付宝实现本身全部在新增目录 `apps/backend/src/modules/payment-alipay/` 内。
 
-上游由 `sync-fork.yml` 每日自动同步：`pnpm-lock.yaml` 冲突时用 pnpm 重新生成，源码真冲突时任务失败并提示人工处理，**不会丢弃本 fork 的提交**（不要用 GitHub 网页的 “Sync fork” 丢弃按钮，原因见 [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md#为什么网页版同步总是提示冲突)）。
+上游由 `sync-fork.yml` 每日自动同步：生成文件（`pnpm-lock.yaml`、`*.tsbuildinfo`）冲突自动解决，`pnpm-lock.yaml` 用 pnpm 重新生成；源码真冲突时任务失败并提示人工处理，**不会丢弃本 fork 的提交**（不要用 GitHub 网页的 “Sync fork” 丢弃按钮，原因见 [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md#为什么网页版同步总是提示冲突)）。
+
+### 工作流
+
+| 工作流 | 触发 | 作用 |
+| --- | --- | --- |
+| `docker.yml` | push `master` / `release`、tag `v*`、手动 | 多架构构建并推送 Docker Hub + GHCR；只改文档的提交会跳过 |
+| `sync-fork.yml` | 每日 03:17 UTC、手动 | 合并上游，生成文件冲突自动解决，源码冲突失败等人工 |
+| `ci.yml` | PR、push `release`、手动 | 后端 lint + 单测 + build，storefront 类型检查（`master` 由 `docker.yml` 覆盖） |
+| `update.yaml` | 上游自带（未改动） | Medusa 版本更新 PR，本项目不使用 |
 
 ---
 

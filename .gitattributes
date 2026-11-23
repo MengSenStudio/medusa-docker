@@ -1,0 +1,4 @@
+# Generated files: collapsed in review diffs and never merged by hand.
+# The sync workflow resolves conflicts in these automatically.
+pnpm-lock.yaml linguist-generated
+*.tsbuildinfo linguist-generated

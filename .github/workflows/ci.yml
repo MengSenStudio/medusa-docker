@@ -1,14 +1,18 @@
-# Lint, unit-test and build the backend on every push/PR.
+# Lint, unit-test and build the backend on pull requests and release pushes.
 #
-# The Docker image workflow runs on pushes to master/release, so this catches
-# TypeScript/lint/test regressions earlier. The storefront is type-checked too;
-# it has no test suite and is not part of the backend image.
+# Pushes to master (including the daily upstream sync) are covered by the Docker
+# workflow, which runs `medusa build` and would fail the same way, so this does
+# not run twice for the same commit. The storefront is type-checked too; it has
+# no test suite and is not part of the backend image.
 name: CI
 
 on:
-  push:
-    branches: [master, release]
   pull_request:
+  push:
+    branches: [release]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   workflow_dispatch:
 
 concurrency:

@@ -15,8 +15,10 @@
 │               └─ 推送 Docker Hub  +  GHCR                        │
 │ sync-fork.yml 每日定时 / 手动触发                                 │
 │               └─ 合并上游 medusajs/dtc-starter                   │
-│               └─ pnpm-lock.yaml 冲突时用 pnpm 重新生成            │
+│               └─ 生成文件冲突（lockfile / tsbuildinfo）自动处理    │
 │               └─ 源码真冲突则任务失败等人工，不丢弃任何提交        │
+│ ci.yml        PR / release / 手动触发                             │
+│               └─ lint + 单测 + build（master 由 docker 覆盖）      │
 └────────────────────────────────────────────────────────────────┘
                               │
         ┌─────────────────────┴─────────────────────┐
@@ -44,9 +46,9 @@
 | --- | --- |
 | `DOCKERHUB_USERNAME` | Docker Hub 用户名（如 `qyg2297248353`） |
 | `DOCKERHUB_TOKEN` | Docker Hub Access Token（Account Settings → Security 生成） |
-| `GITHUBTOKEN` | GitHub PAT，需 `write:packages`（推送 GHCR）及 `repo` 权限（sync-fork 推送）。若未设置，sync-fork 回退使用内置 `GITHUB_TOKEN`，但用内置 token 推送后不会触发 CI/docker 工作流 |
+| `GITHUBTOKEN` | GitHub PAT，需 `write:packages`（推送 GHCR）。若未设置，sync-fork 回退使用内置 `GITHUB_TOKEN`，但用内置 token 推送后不会触发 docker 工作流 |
 
-工作流 [docker.yml](../.github/workflows/docker.yml) 在推送到 `master`、`release` 分支，推送 `v*` 标签或手动触发时构建并推送镜像：
+工作流 [docker.yml](../.github/workflows/docker.yml) 在推送到 `master`、`release` 分支，推送 `v*` 标签或手动触发时构建并推送镜像（只改文档的提交会跳过，不会白跑一次多架构构建）：
 
 | 触发 | 标签示例 |
 | --- | --- |
@@ -273,7 +275,7 @@ docker compose exec backend ./node_modules/.bin/medusa exec ./src/scripts/enable
 
 ## 六、升级与回滚
 
-`sync-fork.yml` 每日自动同步上游 `medusajs/dtc-starter`：合并结果直接推送到 `master`（随后 `docker.yml` 构建新镜像，`ci.yml` 跑 lint / 单测 / build）。**不使用 GitHub 网页的 “Sync fork” 按钮**，原因和替代做法见下一节。
+`sync-fork.yml` 每日自动同步上游 `medusajs/dtc-starter`：合并结果直接推送到 `master`（随后 `docker.yml` 构建新镜像）。**不使用 GitHub 网页的 “Sync fork” 按钮**，原因和替代做法见下一节。
 
 ### 为什么网页版同步总是提示冲突
 
@@ -287,7 +289,7 @@ GitHub 网页的同步只会做 fast-forward，或做一次普通的 git 三方�
 
 `sync-fork.yml` 的处理方式不同，全程不丢弃任何提交：
 
-- 合并上游；冲突文件只有 `pnpm-lock.yaml` 时，取上游版本，再用 `pnpm install --lockfile-only` 把 fork 自己的依赖补回去，并校验 lockfile 与 `package.json` 一致；
+- 生成文件（`pnpm-lock.yaml`、`*.tsbuildinfo`）冲突时自动解决：取上游版本，`pnpm-lock.yaml` 再用 `pnpm install --lockfile-only` 把 fork 自己的依赖补回去，并校验 lockfile 与 `package.json` 一致；
 - 冲突出现在源码文件时，任务直接失败并在日志里列出文件，等人工处理（不会退化成“丢弃提交”）。
 
 手动同步 / 解决真冲突：

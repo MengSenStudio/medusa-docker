@@ -11,12 +11,16 @@
 #   GITHUBTOKEN         PAT with write:packages (used for ghcr.io login)
 #
 # Triggers: push to master or release, tags v*, or manual dispatch.
+# Documentation-only changes are skipped: they cannot affect the image.
 name: Docker
 
 on:
   push:
     branches: [master, release]
     tags: ["v*"]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
   workflow_dispatch:
 
 concurrency:
