@@ -1,18 +1,21 @@
 # Build the Medusa backend image and push it to:
 #   - Docker Hub: qyg2297248353/medusa
-#   - GHCR:       ghcr.io/qyg2297248353/medusa
+#   - GHCR:       ghcr.io/mengsenstudio/medusa-docker
+#
+# The GHCR path must follow the GitHub owner of this repository; the Docker Hub
+# namespace is the maintainer's account and can be changed with DOCKERHUB_IMAGE.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   DOCKERHUB_USERNAME  Docker Hub username (qyg2297248353)
 #   DOCKERHUB_TOKEN     Docker Hub access token
 #   GITHUBTOKEN         PAT with write:packages (used for ghcr.io login)
 #
-# Triggers: push to release, tags v*, or manual dispatch.
+# Triggers: push to master or release, tags v*, or manual dispatch.
 name: Docker
 
 on:
   push:
-    branches: [release]
+    branches: [master, release]
     tags: ["v*"]
   workflow_dispatch:
 
@@ -22,7 +25,7 @@ concurrency:
 
 env:
   DOCKERHUB_IMAGE: qyg2297248353/medusa
-  GHCR_IMAGE: ghcr.io/qyg2297248353/medusa
+  GHCR_IMAGE: ghcr.io/mengsenstudio/medusa-docker
 
 jobs:
   build-and-push:

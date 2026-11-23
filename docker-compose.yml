@@ -1,8 +1,8 @@
 # Example deployment for the Medusa backend (no storefront).
 #
 # Image: qyg2297248353/medusa (Docker Hub)
-#        ghcr.io/qyg2297248353/medusa (GHCR)
-# Override with: MEDUSA_IMAGE=ghcr.io/qyg2297248353/medusa:latest
+#        ghcr.io/mengsenstudio/medusa-docker (GHCR)
+# Override with: MEDUSA_IMAGE=ghcr.io/mengsenstudio/medusa-docker:latest
 #
 # Quick start:
 #   cp .env.example .env   # or export the variables below

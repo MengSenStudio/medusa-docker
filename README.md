@@ -11,6 +11,12 @@
   Medusa DTC Starter
 </h1>
 
+> **This repository is a fork of [medusajs/dtc-starter](https://github.com/medusajs/dtc-starter) for Docker Compose deployment, with Alipay payment support.**
+>
+> - Deploy the backend: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) · [.github/README.md](./.github/README.md)
+> - Images: `qyg2297248353/medusa` (Docker Hub) · `ghcr.io/mengsenstudio/medusa-docker` (GHCR)
+> - Default branch: `master`. Everything except the deployment tooling and the Alipay provider tracks upstream; upstream is merged by `.github/workflows/sync-fork.yml`.
+
 <h4 align="center">
   <a href="https://docs.medusajs.com">Documentation</a> |
   <a href="https://www.medusajs.com">Website</a>

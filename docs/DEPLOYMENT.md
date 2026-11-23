@@ -10,18 +10,19 @@
 
 ```
 ┌──────────────────────── GitHub Actions ────────────────────────┐
-│ docker.yml    push main / tag v* / 手动触发                      │
+│ docker.yml    push master / release / tag v* / 手动触发           │
 │               └─ 多架构构建 (amd64 + arm64)                       │
 │               └─ 推送 Docker Hub  +  GHCR                        │
 │ sync-fork.yml 每日定时 / 手动触发                                 │
 │               └─ 合并上游 medusajs/dtc-starter                   │
-│               └─ 冲突时自动开 PR 等待人工处理                      │
+│               └─ pnpm-lock.yaml 冲突时用 pnpm 重新生成            │
+│               └─ 源码真冲突则任务失败等人工，不丢弃任何提交        │
 └────────────────────────────────────────────────────────────────┘
                               │
         ┌─────────────────────┴─────────────────────┐
         ▼                                           ▼
   Docker Hub:                              GHCR:
-  qyg2297248353/medusa                     ghcr.io/qyg2297248353/medusa
+  qyg2297248353/medusa                     ghcr.io/mengsenstudio/medusa-docker
 ```
 
 镜像内容：基于 `node:22-alpine`，仅包含 `apps/backend` 经 `medusa build` 编译后的产物与生产依赖。Admin 后台已内置，启动后访问 `http://<host>:9000/app`。
@@ -43,15 +44,15 @@
 | --- | --- |
 | `DOCKERHUB_USERNAME` | Docker Hub 用户名（如 `qyg2297248353`） |
 | `DOCKERHUB_TOKEN` | Docker Hub Access Token（Account Settings → Security 生成） |
-| `GITHUBTOKEN` | GitHub PAT，需 `write:packages`（推送 GHCR）及 `repo` 权限（sync-fork 推送/开 PR）。若未设置，sync-fork 回退使用内置 `GITHUB_TOKEN` |
+| `GITHUBTOKEN` | GitHub PAT，需 `write:packages`（推送 GHCR）及 `repo` 权限（sync-fork 推送）。若未设置，sync-fork 回退使用内置 `GITHUB_TOKEN`，但用内置 token 推送后不会触发 CI/docker 工作流 |
 
-工作流 [docker.yml](../.github/workflows/docker.yml) 在推送到 `release` 分支、推送 `v*` 标签或手动触发时构建并推送镜像：
+工作流 [docker.yml](../.github/workflows/docker.yml) 在推送到 `master`、`release` 分支，推送 `v*` 标签或手动触发时构建并推送镜像：
 
 | 触发 | 标签示例 |
 | --- | --- |
+| 推送到 `master` 分支（默认分支） | `master`, `sha-xxxxxxx`, `latest` |
 | 推送到 `release` 分支 | `release`, `sha-xxxxxxx` |
 | 推送标签 `v1.2.0` | `1.2.0`, `1.2`, `v1.2.0` |
-| 推送到默认分支（且该分支为默认分支时） | `latest` |
 
 ## 二、部署前置条件
 
@@ -70,8 +71,8 @@
 ```bash
 mkdir medusa && cd medusa
 # 从仓库下载（或 git clone 后复制）
-curl -O https://raw.githubusercontent.com/qyg2297248353/dtc-starter/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/qyg2297248353/dtc-starter/main/.env.example
+curl -O https://raw.githubusercontent.com/MengSenStudio/medusa-docker/master/docker-compose.yml
+curl -O https://raw.githubusercontent.com/MengSenStudio/medusa-docker/master/.env.example
 cp .env.example .env
 ```
 
@@ -160,7 +161,7 @@ REDIS_URL=rediss://:密码@主机:6380/0
 ### 方式 1（推荐）：使用 docker-compose.external.yml
 
 ```bash
-curl -O https://raw.githubusercontent.com/qyg2297248353/dtc-starter/main/docker-compose.external.yml
+curl -O https://raw.githubusercontent.com/MengSenStudio/medusa-docker/master/docker-compose.external.yml
 cp .env.example .env
 ```
 
@@ -272,7 +273,36 @@ docker compose exec backend ./node_modules/.bin/medusa exec ./src/scripts/enable
 
 ## 六、升级与回滚
 
-`sync-fork.yml` 每日自动同步上游 `medusajs/dtc-starter`：无冲突则直接合并推送（随后 `docker.yml` 自动构建新镜像），有冲突则自动开 PR 由人工解决。
+`sync-fork.yml` 每日自动同步上游 `medusajs/dtc-starter`：合并结果直接推送到 `master`（随后 `docker.yml` 构建新镜像，`ci.yml` 跑 lint / 单测 / build）。**不使用 GitHub 网页的 “Sync fork” 按钮**，原因和替代做法见下一节。
+
+### 为什么网页版同步总是提示冲突
+
+GitHub 网页的同步只会做 fast-forward，或做一次普通的 git 三方合并，**不会运行 pnpm**。而：
+
+1. 本 fork 为了支付宝扫码支付多了 `qrcode.react` 依赖，`pnpm-lock.yaml` 与上游不同；
+2. 上游几乎每次发版（`chore: update @medusajs/*`）都会整份重写 `pnpm-lock.yaml`；
+3. 生成文件的改动几乎必然落在同一区域，三方合并无法自动解决。
+
+于是网页端显示 “This branch has conflicts that must be resolved”，并给出 “Discard N commits to make this branch match the upstream repository”（丢弃本 fork 的提交）。**不要点丢弃**——那会把支付宝等 fork 功能一起删掉。
+
+`sync-fork.yml` 的处理方式不同，全程不丢弃任何提交：
+
+- 合并上游；冲突文件只有 `pnpm-lock.yaml` 时，取上游版本，再用 `pnpm install --lockfile-only` 把 fork 自己的依赖补回去，并校验 lockfile 与 `package.json` 一致；
+- 冲突出现在源码文件时，任务直接失败并在日志里列出文件，等人工处理（不会退化成“丢弃提交”）。
+
+手动同步 / 解决真冲突：
+
+```bash
+git remote add upstream https://github.com/medusajs/dtc-starter.git   # 只需一次
+git fetch upstream
+git checkout master
+git merge upstream/main
+# 若 pnpm-lock.yaml 冲突：git checkout --theirs pnpm-lock.yaml && pnpm install --lockfile-only
+# 其它文件按 fork-addition 注释保留本 fork 的代码段，然后：
+git push origin master
+```
+
+也可以直接 Actions → **Sync Fork** → Run workflow 手动触发一次同步。
 
 升级部署机：
 

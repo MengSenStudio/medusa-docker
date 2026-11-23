@@ -2,6 +2,8 @@
 
 本 fork 让 [medusajs/dtc-starter](https://github.com/medusajs/dtc-starter) 的 **Medusa 后端**可以通过 Docker Compose 一键部署到任何 Linux 主机。内置 PostgreSQL 16 + Redis 7，也可以接外部云数据库。
 
+仓库：<https://github.com/MengSenStudio/medusa-docker>（默认分支 `master`，镜像 `ghcr.io/mengsenstudio/medusa-docker` / Docker Hub `qyg2297248353/medusa`）。
+
 ---
 
 ## 项目结构
@@ -25,7 +27,9 @@
 └── docs/DEPLOYMENT.md     # 完整部署文档
 ```
 
-fork 新增的文件（部署配置、支付宝 provider、通知路由、扫码状态接口、storefront 回跳路由）都独立存放，不改上游既有逻辑。确需在上游文件里追加的少量代码都带 `// fork-addition:` 注释：`medusa-config.ts`（Cookie、文件模块 `backend_url`、支付宝 provider 注册）、`initial-data-seed.ts`（新库自动启用支付宝），以及 storefront 的支付选项/按钮/常量三处。支付宝实现本身全部在新增目录 `apps/backend/src/modules/payment-alipay/` 内。上游每日自动同步，冲突时会自动开 PR 处理。
+fork 新增的文件（部署配置、支付宝 provider、通知路由、扫码状态接口、storefront 回跳路由）都独立存放，不改上游既有逻辑。确需在上游文件里追加的少量代码都带 `// fork-addition:` 注释：`medusa-config.ts`（Cookie、文件模块 `backend_url`、支付宝 provider 注册）、`initial-data-seed.ts`（新库自动启用支付宝），以及 storefront 的支付选项/按钮/常量三处。支付宝实现本身全部在新增目录 `apps/backend/src/modules/payment-alipay/` 内。
+
+上游由 `sync-fork.yml` 每日自动同步：`pnpm-lock.yaml` 冲突时用 pnpm 重新生成，源码真冲突时任务失败并提示人工处理，**不会丢弃本 fork 的提交**（不要用 GitHub 网页的 “Sync fork” 丢弃按钮，原因见 [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md#为什么网页版同步总是提示冲突)）。
 
 ---
 
@@ -34,8 +38,8 @@ fork 新增的文件（部署配置、支付宝 provider、通知路由、扫码
 ```bash
 # 1. 准备文件
 mkdir medusa && cd medusa
-curl -O https://raw.githubusercontent.com/QYG2297248353/dtc-starter/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/QYG2297248353/dtc-starter/main/.env.example
+curl -O https://raw.githubusercontent.com/MengSenStudio/medusa-docker/master/docker-compose.yml
+curl -O https://raw.githubusercontent.com/MengSenStudio/medusa-docker/master/.env.example
 cp .env.example .env
 
 # 2. 编辑 .env（必填：JWT_SECRET、COOKIE_SECRET；按实际访问地址改 CORS 与 BACKEND_URL）
@@ -241,6 +245,6 @@ Medusa 生产模式（`NODE_ENV=production`）默认给 Session Cookie 加 `Secu
 
 镜像仓库：
 - Docker Hub: [`qyg2297248353/medusa`](https://hub.docker.com/r/qyg2297248353/medusa)
-- GHCR: `ghcr.io/qyg2297248353/medusa`
+- GHCR: `ghcr.io/mengsenstudio/medusa-docker`
 
 详细部署步骤、连接串格式、运维命令、回滚方案等见 [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md)。

@@ -1,13 +1,13 @@
 # Lint, unit-test and build the backend on every push/PR.
 #
-# The Docker image workflow only runs on release pushes, so this catches
+# The Docker image workflow runs on pushes to master/release, so this catches
 # TypeScript/lint/test regressions earlier. The storefront is type-checked too;
 # it has no test suite and is not part of the backend image.
 name: CI
 
 on:
   push:
-    branches: [main, release]
+    branches: [master, release]
   pull_request:
   workflow_dispatch:
 
